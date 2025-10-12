@@ -36,14 +36,27 @@ const CodePage = () => {
       });
 
       //jooined event khud ke UI par joined notice nahi lana khud ka
-      socketRef.current.on(ACTIONS.JOINED, ({clients,username,scoketId}) => {
+      socketRef.current.on(ACTIONS.JOINED, ({clients,username,socketId}) => {
         if(username !== location.state?.username){
           toast.success(`${username} joined the room.`);
         }
         setClients(clients);
       })
+
+      //disconnect hone ke baad
+      socketRef.current.on(ACTIONS.DISCONNECTED, ({socketId, username}) => {
+        toast.success(`${username} left the room.`);
+        setClients((prev) => {
+          return prev.filter(client => client.scoketId !== socketId);
+        })
+      })
     };
     init();
+    return () => {
+      socketRef.current.disconnect();
+      socketRef.current.off(ACTIONS.JOINED);
+      socketRef.current.off(ACTIONS.DISCONNECTED);
+    }
   }, []);
 
   if(!location.state){
