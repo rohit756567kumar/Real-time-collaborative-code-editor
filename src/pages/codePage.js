@@ -21,13 +21,13 @@ const CodePage = () => {
   useEffect(() => {
     const init = async () => {
       socketRef.current = await initSocket();
-      socketRef.current.on('connect_error', (err) => handleErrors(err));
+      socketRef.current.on("connect_error", (err) => handleErrors(err));
       socketRef.current.on("connect_failed", (err) => handleErrors(err));
 
       function handleErrors(e) {
-        console.log('socket error', e);
-        toast.error('socket connection failed, try again later.');
-        reactNavigator('/');
+        console.log("socket error", e);
+        toast.error("socket connection failed, try again later.");
+        reactNavigator("/");
       }
 
       socketRef.current.emit(ACTIONS.JOIN, {
@@ -36,27 +36,31 @@ const CodePage = () => {
       });
 
       //jooined event khud ke UI par joined notice nahi lana khud ka
-      socketRef.current.on(ACTIONS.JOINED, ({clients,username,socketId}) => {
-        if(username !== location.state?.username){
-          toast.success(`${username} joined the room.`);
+      socketRef.current.on(
+        ACTIONS.JOINED,
+        ({ clients, username, socketId }) => {
+          if (username !== location.state?.username) {
+            toast.success(`${username} joined the room.`);
+          }
+          setClients(clients);
         }
-        setClients(clients);
-      })
+      );
 
       //disconnect hone ke baad
-      socketRef.current.on(ACTIONS.DISCONNECTED, ({socketId, username}) => {
+      socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
         toast.success(`${username} left the room.`);
         setClients((prev) => {
-          return prev.filter(client => client.scoketId !== socketId);
-        })
-      })
+          return prev.filter((client) => client.socketId !== socketId);
+        });
+      });
     };
     init();
     return () => {
-      socketRef.current.disconnect();
-      socketRef.current.off(ACTIONS.JOINED);
-      socketRef.current.off(ACTIONS.DISCONNECTED);
-    }
+      //socketRef.current.disconnect();
+      //socketRef.current.off(ACTIONS.JOINED);
+      //socketRef.current.off(ACTIONS.DISCONNECTED);
+    };
+    // eslint-disable-next-line
   }, []);
 
   if(!location.state){
