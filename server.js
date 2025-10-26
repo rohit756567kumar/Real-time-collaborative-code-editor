@@ -35,13 +35,25 @@ io.on("connection", (socket) => {
 
     const clients = getAllConnectedClients(roomId);
     clients.forEach(({ socketId }) => {
+      if(socketId !== socket.id){
       io.to(socketId).emit(ACTIONS.JOINED, {
         clients,
         username,
         socketId: socket.id,
       });
+    }
     });
+    
   });
+
+  socket.on(ACTIONS.CODE_CHANGE, ({roomId, code}) => {
+     console.log("🖋️ CODE_CHANGE from", socket.id, "in room", roomId);
+    io.in(roomId).emit(ACTIONS.CODE_CHANGE, {code});
+  })
+
+    socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
+      io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
+    });
 
   socket.on("disconnecting", () => {
     const rooms = [...socket.rooms];

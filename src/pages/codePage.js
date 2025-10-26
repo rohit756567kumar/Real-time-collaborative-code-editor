@@ -9,6 +9,7 @@ import { useLocation, useNavigate, Navigate, useParams } from "react-router-dom"
 const CodePage = () => {
 
   const socketRef = useRef(null);
+  const codeRef = useRef(null);
   const location = useLocation();
   const {roomId} = useParams();
   const reactNavigator = useNavigate();
@@ -21,6 +22,7 @@ const CodePage = () => {
   useEffect(() => {
     const init = async () => {
       socketRef.current = await initSocket();
+      if (!socketRef.current) return;
       socketRef.current.on("connect_error", (err) => handleErrors(err));
       socketRef.current.on("connect_failed", (err) => handleErrors(err));
 
@@ -39,10 +41,14 @@ const CodePage = () => {
       socketRef.current.on(
         ACTIONS.JOINED,
         ({ clients, username, socketId }) => {
+          console.log("JOINED clients:", clients);
           if (username !== location.state?.username) {
             toast.success(`${username} joined the room.`);
           }
           setClients(clients);
+          if(username === location.state?.username){
+          socketRef.current.emit(ACTIONS.SYNC_CODE, {code: codeRef.current, socketId});
+          }
         }
       );
 
@@ -56,12 +62,28 @@ const CodePage = () => {
     };
     init();
     return () => {
-      //socketRef.current.disconnect();
-      //socketRef.current.off(ACTIONS.JOINED);
-      //socketRef.current.off(ACTIONS.DISCONNECTED);
+      if (socketRef.current) 
+        {
+      socketRef.current.disconnect();
+      socketRef.current.off(ACTIONS.JOINED);
+      socketRef.current.off(ACTIONS.DISCONNECTED);
+        }
     };
     // eslint-disable-next-line
   }, []);
+
+  async function copyRoomId(){
+    try{
+      await navigator.clipboard.writeText(roomId);
+      toast.success('Room ID has been copied to your Clipboard')
+    }catch(err){
+      toast.error('Could not copy Room ID');
+    }
+  }
+
+  function leaveRoom(){
+    reactNavigator('/');
+  }
 
   if(!location.state){
   return <Navigate to="/"/>
@@ -81,11 +103,11 @@ const CodePage = () => {
             ))}
           </div>
         </div>
-        <button className="btn copyBtn">Copy Room ID</button>
-        <button className="btn leaveBtn">Leave</button>
+        <button className="btn copyBtn" onClick={copyRoomId}>Copy Room ID</button>
+        <button className="btn leaveBtn" onClick={leaveRoom}>Leave</button>
       </div>
       <div className="codeWrap">
-        <Editor />
+        <Editor socketRef={socketRef} roomId={roomId} onCodeChange={(code) => {codeRef.current = code;}}/>
       </div>
     </div>
   );
