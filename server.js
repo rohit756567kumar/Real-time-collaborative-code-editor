@@ -29,22 +29,19 @@ function getAllConnectedClients(roomId) {
 io.on("connection", (socket) => {
   console.log("socket connected", socket.id);
 
-  socket.on(ACTIONS.JOIN, ({ roomId, username }) => {
-    userSocketMap[socket.id] = username;
-    socket.join(roomId);
+socket.on(ACTIONS.JOIN, ({ roomId, username }) => {
+  userSocketMap[socket.id] = username;
+  socket.join(roomId);
 
-    const clients = getAllConnectedClients(roomId);
-    clients.forEach(({ socketId }) => {
-      if(socketId !== socket.id){
-      io.to(socketId).emit(ACTIONS.JOINED, {
-        clients,
-        username,
-        socketId: socket.id,
-      });
-    }
-    });
-    
+  const clients = getAllConnectedClients(roomId);
+
+  // Notify all clients in the room (including the one who just joined)
+  io.in(roomId).emit(ACTIONS.JOINED, {
+    clients,
+    username,
+    socketId: socket.id,
   });
+});
 
   socket.on(ACTIONS.CODE_CHANGE, ({roomId, code}) => {
      console.log("🖋️ CODE_CHANGE from", socket.id, "in room", roomId);

@@ -20,9 +20,11 @@ const CodePage = () => {
 
 
   useEffect(() => {
+    let isSubscribed = true;
     const init = async () => {
+
       socketRef.current = await initSocket();
-      if (!socketRef.current) return;
+      if (!socketRef.current || !isSubscribed) return;
       socketRef.current.on("connect_error", (err) => handleErrors(err));
       socketRef.current.on("connect_failed", (err) => handleErrors(err));
 
@@ -41,12 +43,15 @@ const CodePage = () => {
       socketRef.current.on(
         ACTIONS.JOINED,
         ({ clients, username, socketId }) => {
-          console.log("JOINED clients:", clients);
+          if(!isSubscribed) return;
+
           if (username !== location.state?.username) {
             toast.success(`${username} joined the room.`);
           }
+
           setClients(clients);
-          if(username === location.state?.username){
+
+          if(socketId !== socketRef.current.id && codeRef.current){
           socketRef.current.emit(ACTIONS.SYNC_CODE, {code: codeRef.current, socketId});
           }
         }
@@ -54,6 +59,7 @@ const CodePage = () => {
 
       //disconnect hone ke baad
       socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
+        if(!isSubscribed) return;
         toast.success(`${username} left the room.`);
         setClients((prev) => {
           return prev.filter((client) => client.socketId !== socketId);
@@ -62,6 +68,7 @@ const CodePage = () => {
     };
     init();
     return () => {
+      isSubscribed = false;
       if (socketRef.current) 
         {
       socketRef.current.disconnect();
@@ -70,7 +77,7 @@ const CodePage = () => {
         }
     };
     // eslint-disable-next-line
-  }, []);
+  }, [roomId]);
 
   async function copyRoomId(){
     try{
